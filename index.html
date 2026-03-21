@@ -1098,14 +1098,19 @@ async function fetchDeals(query) {
   }, 1200);
 
   try {
-    // Step 1: Fetch real Kroger product data
+    // Step 1: Fetch real Kroger product data (with location if available)
     const krogerRes = await fetch('/api/kroger', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ term: query })
+      body: JSON.stringify({
+        term: query,
+        lat: userLocation?.lat ?? null,
+        lon: userLocation?.lon ?? null,
+      })
     });
     const krogerData = await krogerRes.json();
     const krogerProducts = krogerData.products || [];
+    const krogerStore = krogerData.store || null; // nearest store info
 
     // Step 2: Ask Claude to interpret the real data + fill in other stores
     const locationStr = userLocation
@@ -1116,11 +1121,15 @@ async function fetchDeals(query) {
       `${p.name} ${p.size} — regular $${p.regularPrice ?? '?'}${p.onSale ? `, ON SALE $${p.salePrice}` : ''}`
     ).join('\n');
 
+    const storeLabel = krogerStore
+      ? `${krogerStore.name} in ${krogerStore.city}${krogerStore.distance != null ? ` (${krogerStore.distance.toFixed(1)} mi away)` : ''}`
+      : 'Kroger';
+
     const prompt = `You are a grocery deal assistant. ${locationStr}
 
 The user searched for: "${query}"
 
-Here are REAL prices from Kroger right now:
+Here are REAL prices from ${storeLabel} right now:
 ${krogerSummary || 'No Kroger results found.'}
 
 Return a JSON array of 4-6 grocery store deals. Include the real Kroger results above as Kroger entries. Then add 2-3 realistic deals from other nearby stores (Walmart, Aldi, Target, etc.) for the same item.
@@ -1151,6 +1160,7 @@ For Kroger entries, use the exact prices from the real data above. Return ONLY v
     const chatData = await chatRes.json();
     const text = chatData.content[0].text.replace(/```json|```/g, '').trim();
     currentDeals = JSON.parse(text);
+    window.lastKrogerStore = krogerStore;
     clearInterval(msgInterval);
     renderResults(query, currentDeals);
 
@@ -1246,7 +1256,8 @@ function renderResults(query, deals) {
   const maxSave = Math.max(...deals.map(d => d.regularPrice - d.salePrice));
   const locNote = userLocation ? ` near ${userLocation.city}` : '';
   const banner = document.querySelector('.savings-banner .savings-text');
-  banner.innerHTML = `<strong>Up to $${maxSave.toFixed(2)}</strong>potential savings found${locNote}`;
+  const krogerNote = window.lastKrogerStore ? ` · prices from ${window.lastKrogerStore.name}` : '';
+  banner.innerHTML = `<strong>Up to $${maxSave.toFixed(2)}</strong>potential savings found${locNote}${krogerNote}`;
 
   const list = document.getElementById('dealsList');
   list.innerHTML = '';

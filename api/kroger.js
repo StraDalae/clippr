@@ -1,12 +1,10 @@
 // api/kroger.js
-// Handles Kroger OAuth token + product search
-// Caches the access token in memory for its lifetime (30 min)
+// Handles Kroger OAuth token, location lookup, and product search
 
 let cachedToken = null;
 let tokenExpiry = 0;
 
 async function getAccessToken() {
-  // Return cached token if still valid (with 60s buffer)
   if (cachedToken && Date.now() < tokenExpiry - 60000) {
     return cachedToken;
   }
@@ -35,10 +33,91 @@ async function getAccessToken() {
   return cachedToken;
 }
 
+async function getNearestStoreId(token, lat, lon) {
+  const params = new URLSearchParams({
+    'filter.latLong.near': `${lat},${lon}`,
+    'filter.limit': '1',
+    'filter.radiusInMiles': '25',
+  });
+
+  const res = await fetch(
+    `https://api.kroger.com/v1/locations?${params.toString()}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Kroger locations failed: ${err}`);
+  }
+
+  const data = await res.json();
+  const store = data.data?.[0];
+  if (!store) return null;
+
+  return {
+    locationId: store.locationId,
+    name: store.name,
+    address: store.address?.addressLine1 || '',
+    city: store.address?.city || '',
+    distance: store.geolocation?.distance ?? null,
+  };
+}
+
+async function searchProducts(token, term, locationId) {
+  const params = new URLSearchParams({
+    'filter.term': term,
+    'filter.limit': '8',
+    'filter.fulfillment': 'ais',
+  });
+
+  if (locationId) {
+    params.append('filter.locationId', locationId);
+  }
+
+  const res = await fetch(
+    `https://api.kroger.com/v1/products?${params.toString()}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Kroger products failed: ${err}`);
+  }
+
+  const data = await res.json();
+
+  return (data.data || []).map(product => {
+    const item = product.items?.[0];
+    const price = item?.price;
+    return {
+      productId: product.productId,
+      name: product.description,
+      brand: product.brand || '',
+      size: item?.size || '',
+      regularPrice: price?.regular ?? null,
+      salePrice: price?.promo ?? null,
+      onSale: price?.promo != null && price.promo < (price.regular ?? Infinity),
+      imageUrl: product.images
+        ?.find(i => i.perspective === 'front')
+        ?.sizes?.find(s => s.size === 'medium')?.url || null,
+    };
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { term, locationId } = req.body;
+  const { term, lat, lon } = req.body;
 
   if (!term) {
     return res.status(400).json({ error: 'Missing search term' });
@@ -47,50 +126,16 @@ export default async function handler(req, res) {
   try {
     const token = await getAccessToken();
 
-    // Build query — filter by location if provided
-    const params = new URLSearchParams({
-      'filter.term': term,
-      'filter.limit': '10',
-    });
-    if (locationId) {
-      params.append('filter.locationId', locationId);
+    // Find nearest Kroger if coordinates provided
+    let storeInfo = null;
+    if (lat != null && lon != null) {
+      storeInfo = await getNearestStoreId(token, lat, lon);
     }
 
-    const productRes = await fetch(
-      `https://api.kroger.com/v1/products?${params.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      }
-    );
+    // Search products scoped to that store
+    const products = await searchProducts(token, term, storeInfo?.locationId ?? null);
 
-    if (!productRes.ok) {
-      const err = await productRes.text();
-      throw new Error(`Kroger products failed: ${err}`);
-    }
-
-    const data = await productRes.json();
-
-    // Normalize the response into the shape the app expects
-    const products = (data.data || []).map(product => {
-      const item = product.items?.[0];
-      const price = item?.price;
-      return {
-        productId: product.productId,
-        name: product.description,
-        brand: product.brand || '',
-        size: item?.size || '',
-        regularPrice: price?.regular ?? null,
-        salePrice: price?.promo ?? null,
-        onSale: price?.promo != null && price.promo < price.regular,
-        imageUrl: product.images?.find(i => i.perspective === 'front')
-          ?.sizes?.find(s => s.size === 'medium')?.url || null,
-      };
-    });
-
-    return res.status(200).json({ products });
+    return res.status(200).json({ products, store: storeInfo });
 
   } catch (err) {
     console.error('Kroger API error:', err.message);
