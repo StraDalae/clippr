@@ -1119,7 +1119,7 @@ Return a JSON array of 4-6 realistic grocery store deals. Each deal object must 
 
 Make prices realistic for 2025. Vary deal types. Return ONLY valid JSON array, no markdown.`;
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1187,7 +1187,7 @@ Rules:
 - Make prices realistic for 2025
 - Return ONLY valid JSON, no markdown, no explanation`;
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
