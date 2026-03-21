@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Clippr — Grocery Deals</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #17191d;
+    --surface2: #1f2227;
+    --border: #2a2d35;
+    --accent: #b5f03c;
+    --accent-dim: #8fbc2a;
+    --accent-bg: rgba(181,240,60,0.08);
+    --text: #f0f1f3;
+    --muted: #7a7f8a;
+    --danger: #ff5c5c;
+    --gold: #f5c842;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 420px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* ---- NAV ---- */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--accent); }
+
+  .wallet-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .wallet-btn:hover { background: var(--border); }
+  .wallet-count {
+    background: var(--accent);
+    color: #0e0f11;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 100px;
+    padding: 1px 6px;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  /* ---- SCREENS ---- */
+  .screen { display: none; flex-direction: column; flex: 1; padding: 20px; animation: fadeIn 0.25s ease; }
+  .screen.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ---- HOME SCREEN ---- */
+  .hero {
+    padding: 28px 0 24px;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+
+  .hero h1 em { color: var(--accent); font-style: normal; }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .search-box {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .search-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-input::placeholder { color: var(--muted); }
+  .search-input:focus { border-color: var(--accent); }
+
+  .search-btn {
+    background: var(--accent);
+    color: #0e0f11;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .search-btn:hover { background: var(--accent-dim); }
+  .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    margin: 20px 0;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .list-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    width: 100%;
+    height: 110px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+
+  .list-input::placeholder { color: var(--muted); }
+  .list-input:focus { border-color: var(--accent); }
+
+  .list-btn {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 13px 18px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+    transition: all 0.2s;
+  }
+
+  .list-btn:hover { background: var(--border); }
+  .list-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .quick-searches {
+    margin-top: 24px;
+  }
+
+  .qs-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .qs-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .qs-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    padding: 7px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .qs-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---- LOADING ---- */
+  .loading-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 40px;
+  }
+
+  .spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .loading-sub {
+    font-size: 13px;
+    color: var(--muted);
+    opacity: 0.6;
+    text-align: center;
+    margin-top: -12px;
+  }
+
+  /* ---- RESULTS SCREEN ---- */
+  .results-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .back-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+
+  .back-btn:hover { background: var(--border); }
+
+  .results-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+  }
+
+  .results-title span {
+    color: var(--accent);
+  }
+
+  .savings-banner {
+    background: var(--accent-bg);
+    border: 1px solid rgba(181,240,60,0.2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .savings-icon { font-size: 22px; }
+
+  .savings-text {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .savings-text strong {
+    font-size: 16px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    display: block;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .deal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .deal-card:hover { border-color: rgba(181,240,60,0.3); }
+
+  .deal-card-top {
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .store-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    background: var(--surface2);
+  }
+
+  .deal-info { flex: 1; min-width: 0; }
+
+  .deal-store {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 3px;
+  }
+
+  .deal-item {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .deal-prices {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .price-now {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--accent);
+  }
+
+  .price-was {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: line-through;
+  }
+
+  .price-save {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .deal-footer {
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .deal-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.03em;
+  }
+
+  .tag-coupon {
+    background: rgba(245,200,66,0.12);
+    color: var(--gold);
+    border: 1px solid rgba(245,200,66,0.2);
+  }
+
+  .tag-sale {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 1px solid rgba(181,240,60,0.2);
+  }
+
+  .tag-member {
+    background: rgba(180,100,255,0.1);
+    color: #c97cff;
+    border: 1px solid rgba(180,100,255,0.2);
+  }
+
+  .unlock-btn {
+    background: var(--accent);
+    color: #0e0f11;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .unlock-btn:hover { background: var(--accent-dim); }
+
+  .unlock-btn.unlocked {
+    background: var(--surface2);
+    color: var(--accent);
+    border: 1px solid rgba(181,240,60,0.3);
+    cursor: default;
+  }
+
+  .code-reveal {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px dashed rgba(181,240,60,0.4);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: 'Syne', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .code-reveal:hover { background: var(--accent-bg); }
+
+  /* ---- AD MODAL ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 36px;
+    width: 100%;
+    max-width: 420px;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 100px;
+    margin: 0 auto 20px;
+  }
+
+  .modal h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+
+  .modal p {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .ad-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ad-label {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .ad-placeholder-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .ad-progress-bar {
+    width: 80%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .ad-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 100px;
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  .ad-timer {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .modal-claim-btn {
+    background: var(--accent);
+    color: #0e0f11;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    padding: 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+  }
+
+  .modal-claim-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .modal-claim-btn:not(:disabled):hover { background: var(--accent-dim); }
+
+  .modal-cancel {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .modal-cancel:hover { color: var(--text); }
+
+  /* ---- WALLET SCREEN ---- */
+  .wallet-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--muted);
+    text-align: center;
+    padding: 40px;
+  }
+
+  .wallet-empty-icon { font-size: 48px; opacity: 0.4; }
+
+  .wallet-empty h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .wallet-empty p { font-size: 14px; line-height: 1.5; }
+
+  .wallet-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .wallet-card-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .wallet-card-info { flex: 1; }
+
+  .wallet-card-store {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .wallet-card-desc {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .wallet-card-code {
+    font-family: 'Syne', monospace;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--accent);
+    background: var(--accent-bg);
+    border: 1px dashed rgba(181,240,60,0.3);
+    padding: 6px 10px;
+    border-radius: 8px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+  }
+
+  /* ---- TOAST ---- */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 200;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Scrollable results */
+  #resultsScreen { overflow-y: auto; }
+  #walletScreen { overflow-y: auto; }
+
+  /* ---- BASKET / MULTI-ITEM RESULTS ---- */
+  .winner-card {
+    background: linear-gradient(135deg, rgba(181,240,60,0.12), rgba(181,240,60,0.04));
+    border: 1.5px solid rgba(181,240,60,0.4);
+    border-radius: var(--radius);
+    padding: 18px 16px 14px;
+    margin-bottom: 20px;
+  }
+  .winner-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .winner-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+  }
+  .winner-store { display: flex; align-items: center; gap: 10px; }
+  .winner-emoji { font-size: 28px; }
+  .winner-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; }
+  .winner-total { text-align: right; }
+  .winner-price { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 24px; color: var(--accent); }
+  .winner-vs { font-size: 11px; color: var(--muted); }
+  .winner-items { border-top: 1px solid rgba(181,240,60,0.15); padding-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+  .winner-item-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+  .winner-item-name { color: var(--muted); }
+  .winner-item-price { font-weight: 600; color: var(--text); }
+  .runner-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+  .runner-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer; }
+  .runner-store { display: flex; align-items: center; gap: 10px; }
+  .runner-emoji { font-size: 20px; }
+  .runner-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+  .runner-right { display: flex; align-items: center; gap: 10px; }
+  .runner-total { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+  .runner-diff { font-size: 11px; color: var(--danger); font-weight: 600; }
+  .runner-chevron { color: var(--muted); font-size: 12px; transition: transform 0.2s; }
+  .runner-chevron.open { transform: rotate(180deg); }
+  .runner-items { border-top: 1px solid var(--border); padding: 10px 16px 14px; display: none; flex-direction: column; gap: 6px; }
+  .runner-items.open { display: flex; }
+  .runner-item-row { display: flex; justify-content: space-between; font-size: 12px; }
+  .runner-item-name { color: var(--muted); }
+  .runner-item-price { color: var(--text); font-weight: 500; }
+
+  /* ---- LOCATION ---- */
+  .location-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 4px 10px 4px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .location-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .location-pill.detecting { color: var(--muted); opacity: 0.6; }
+
+  .location-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .location-dot.inactive { background: var(--muted); animation: none; }
+
+  /* location permission banner */
+  .loc-banner {
+    background: var(--surface);
+    border: 1px solid rgba(181,240,60,0.2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .loc-banner-text { flex: 1; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .loc-banner-text strong { display: block; color: var(--text); font-size: 14px; margin-bottom: 2px; }
+
+  .loc-allow-btn {
+    background: var(--accent);
+    color: #0e0f11;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="logo">Clip<span>pr</span></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="location-pill detecting" id="locationPill" onclick="requestLocation()">
+        <div class="location-dot inactive" id="locationDot"></div>
+        <span id="locationLabel">Detecting…</span>
+      </div>
+      <button class="wallet-btn" onclick="showWallet()">
+        🏷️ <span class="wallet-count" id="walletCount">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="homeScreen">
+    <div class="hero">
+      <h1>Find deals,<br>save <em>real money</em>.</h1>
+      <p>Search any grocery item and we'll find the best prices and coupons across every major store.</p>
+    </div>
+
+    <div id="locationBanner" class="loc-banner" style="display:none;">
+      <div style="font-size:22px">📍</div>
+      <div class="loc-banner-text">
+        <strong>Enable location for better deals</strong>
+        We'll show stores near you and region-specific coupons.
+      </div>
+      <button class="loc-allow-btn" onclick="requestLocation()">Allow</button>
+    </div>
+
+    <div class="search-box">
+      <input class="search-input" type="text" id="searchInput" placeholder="e.g. almond milk, chicken breast…" />
+      <button class="search-btn" id="searchBtn" onclick="doSearch()">Find Deals</button>
+    </div>
+
+    <div class="divider">or paste your whole list</div>
+
+    <textarea class="list-input" id="listInput" placeholder="Eggs&#10;Whole milk&#10;Sourdough bread&#10;Baby spinach&#10;Greek yogurt…"></textarea>
+    <button class="list-btn" id="listBtn" onclick="doListSearch()">🛒 Find Deals for My List</button>
+
+    <div class="quick-searches">
+      <div class="qs-label">Popular searches</div>
+      <div class="qs-chips">
+        <div class="qs-chip" onclick="quickSearch('Chicken breast')">🍗 Chicken</div>
+        <div class="qs-chip" onclick="quickSearch('Eggs')">🥚 Eggs</div>
+        <div class="qs-chip" onclick="quickSearch('Greek yogurt')">🥛 Yogurt</div>
+        <div class="qs-chip" onclick="quickSearch('Avocados')">🥑 Avocados</div>
+        <div class="qs-chip" onclick="quickSearch('Frozen pizza')">🍕 Frozen pizza</div>
+        <div class="qs-chip" onclick="quickSearch('Oat milk')">🌾 Oat milk</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING (inline in home) -->
+  <div style="display:none; flex-direction:column; flex:1; padding:20px;" id="loadingScreen">
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">Scanning stores…</div>
+      <div class="loading-sub">Checking prices & coupons across 8 stores</div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="screen" id="resultsScreen">
+    <div class="results-header">
+      <button class="back-btn" onclick="goHome()">←</button>
+      <div class="results-title">Deals for <span id="queryLabel"></span></div>
+    </div>
+
+    <div class="savings-banner">
+      <div class="savings-icon">💰</div>
+      <div class="savings-text">
+        <strong id="totalSavings">--</strong>
+        potential savings found
+      </div>
+    </div>
+
+    <div class="section-label">Best deals available</div>
+    <div id="dealsList"></div>
+  </div>
+
+  <!-- WALLET SCREEN -->
+  <div class="screen" id="walletScreen">
+    <div class="results-header">
+      <button class="back-btn" onclick="goHome()">←</button>
+      <div class="results-title">My <span>Coupons</span></div>
+    </div>
+    <div id="walletList"></div>
+  </div>
+
+</div>
+
+<!-- AD MODAL -->
+<div class="modal-overlay" id="adModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Unlock this coupon</h2>
+    <p>Watch a short ad to unlock the coupon code and add it to your wallet.</p>
+    <div class="ad-box">
+      <div class="ad-label">AD</div>
+      <div style="font-size:36px" id="adEmoji">📺</div>
+      <div class="ad-placeholder-text" id="adText">Ad playing…</div>
+      <div class="ad-progress-bar"><div class="ad-progress-fill" id="adFill"></div></div>
+      <div class="ad-timer" id="adTimer">5s remaining</div>
+    </div>
+    <button class="modal-claim-btn" id="claimBtn" disabled onclick="claimCoupon()">Claim Coupon</button>
+    <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+let wallet = [];
+let currentDeal = null;
+let adInterval = null;
+let searchQuery = "";
+let currentDeals = [];
+let userLocation = null; // { city, region, lat, lon }
+
+// ---- LOCATION ----
+async function initLocation() {
+  if (!navigator.geolocation) {
+    setLocationLabel('No location');
+    showLocationBanner();
+    return;
+  }
+  // Hard timeout — if no response in 4s, give up and show banner
+  const giveUp = setTimeout(() => {
+    setLocationLabel('No location');
+    document.getElementById('locationPill').classList.remove('detecting');
+    showLocationBanner();
+  }, 4000);
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => { clearTimeout(giveUp); onLocationSuccess(pos); },
+    (err) => { clearTimeout(giveUp); onLocationDenied(); },
+    { timeout: 4000, maximumAge: 60000 }
+  );
+}
+
+function requestLocation() {
+  document.getElementById('locationBanner').style.display = 'none';
+  setLocationLabel('Detecting…');
+  document.getElementById('locationPill').classList.add('detecting');
+
+  const giveUp = setTimeout(() => {
+    setLocationLabel('No location');
+    document.getElementById('locationPill').classList.remove('detecting');
+    showLocationBanner();
+  }, 8000);
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => { clearTimeout(giveUp); onLocationSuccess(pos); },
+    (err) => { clearTimeout(giveUp); onLocationDenied(); },
+    { timeout: 8000, maximumAge: 60000 }
+  );
+}
+
+async function onLocationSuccess(pos) {
+  const { latitude, longitude } = pos.coords;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+    const data = await res.json();
+    const city = data.address.city || data.address.town || data.address.village || data.address.county || 'your area';
+    const region = data.address.state_code || data.address.state || '';
+    userLocation = { city, region, lat: latitude, lon: longitude };
+    setLocationLabel(`${city}${region ? ', ' + region : ''}`);
+    document.getElementById('locationPill').classList.remove('detecting');
+    document.getElementById('locationDot').classList.remove('inactive');
+    document.getElementById('locationBanner').style.display = 'none';
+  } catch(e) {
+    userLocation = { city: 'your area', region: '', lat: latitude, lon: longitude };
+    setLocationLabel('Near you');
+    document.getElementById('locationPill').classList.remove('detecting');
+    document.getElementById('locationDot').classList.remove('inactive');
+  }
+}
+
+function onLocationDenied() {
+  userLocation = null;
+  setLocationLabel('No location');
+  document.getElementById('locationPill').classList.remove('detecting');
+  showLocationBanner();
+}
+
+function setLocationLabel(text) {
+  document.getElementById('locationLabel').textContent = text;
+}
+
+function showLocationBanner() {
+  document.getElementById('locationBanner').style.display = 'flex';
+}
+
+// ---- SEARCH ----
+let isBasketMode = false;
+let basketItems = [];
+
+function quickSearch(q) {
+  document.getElementById('searchInput').value = q;
+  doSearch();
+}
+
+function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+  isBasketMode = false;
+  searchQuery = q;
+  fetchDeals(q);
+}
+
+function doListSearch() {
+  const raw = document.getElementById('listInput').value.trim();
+  if (!raw) return;
+  basketItems = raw.split('\n').map(s=>s.trim()).filter(Boolean);
+  if (basketItems.length === 1) {
+    isBasketMode = false;
+    searchQuery = basketItems[0];
+    fetchDeals(searchQuery);
+  } else {
+    isBasketMode = true;
+    searchQuery = basketItems.join(', ');
+    fetchBasket(basketItems);
+  }
+}
+
+function goHome() {
+  showScreen('homeScreen');
+}
+
+function showWallet() {
+  renderWallet();
+  showScreen('walletScreen');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById(id).classList.add('active');
+}
+
+async function fetchDeals(query) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('loadingScreen').style.display = 'flex';
+
+  const locationStr = userLocation
+    ? `The user is located in ${userLocation.city}${userLocation.region ? ', ' + userLocation.region : ''}. Only include grocery store chains that actually operate in this region. Prioritize stores common in that area.`
+    : `No location available. Use a mix of national chains (Walmart, Kroger, Target, Aldi, Costco, Whole Foods, Trader Joe's).`;
+
+  const loadingMessages = ["Scanning stores…", "Hunting coupons…", "Comparing prices…", "Almost there…"];
+  let i = 0;
+  const msgInterval = setInterval(() => {
+    document.getElementById('loadingText').textContent = loadingMessages[i % loadingMessages.length];
+    i++;
+  }, 1200);
+
+  try {
+    const prompt = `You are a grocery deal assistant. The user is searching for: "${query}"
+
+${locationStr}
+
+Return a JSON array of 4-6 realistic grocery store deals. Each deal object must have:
+- store: store name
+- storeEmoji: one relevant emoji for the store
+- item: specific product name and size/quantity
+- regularPrice: regular price as a number (e.g. 4.99)
+- salePrice: discounted price as a number
+- dealType: one of "coupon", "sale", "member"
+- dealDescription: one sentence describing the deal
+- couponCode: if dealType is "coupon", a realistic 6-8 char code (e.g. "SAVE20K"), otherwise null
+- savings: dollar savings as a string (e.g. "$1.50 off")
+
+Make prices realistic for 2025. Vary deal types. Return ONLY valid JSON array, no markdown.`;
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content[0].text.replace(/```json|```/g, '').trim();
+    currentDeals = JSON.parse(text);
+    clearInterval(msgInterval);
+    renderResults(query, currentDeals);
+  } catch(e) {
+    clearInterval(msgInterval);
+    currentDeals = [
+      { store: "Kroger", storeEmoji: "🛒", item: query + " (store brand, 32oz)", regularPrice: 4.99, salePrice: 2.99, dealType: "coupon", dealDescription: "Digital coupon, clip in app", couponCode: "KRG2OFF", savings: "$2.00 off" },
+      { store: "Walmart", storeEmoji: "🟦", item: query + " (Great Value, 64oz)", regularPrice: 5.48, salePrice: 3.98, dealType: "sale", dealDescription: "Rollback price this week only", couponCode: null, savings: "$1.50 off" },
+      { store: "Aldi", storeEmoji: "🟥", item: query + " (SimplyNature, 32oz)", regularPrice: 3.79, salePrice: 2.49, dealType: "sale", dealDescription: "ALDI Finds deal, while supplies last", couponCode: null, savings: "$1.30 off" },
+      { store: "Target", storeEmoji: "🎯", item: query + " (Good & Gather, 64oz)", regularPrice: 5.99, salePrice: 4.49, dealType: "member", dealDescription: "Circle member exclusive deal", couponCode: null, savings: "$1.50 off" }
+    ];
+    renderResults(query, currentDeals);
+  }
+}
+
+async function fetchBasket(items) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('loadingScreen').style.display = 'flex';
+
+  const locationStr = userLocation
+    ? `The user is in ${userLocation.city}${userLocation.region ? ', ' + userLocation.region : ''}. Only include stores that operate in this region.`
+    : `Use national chains: Walmart, Kroger, Target, Aldi, Costco, Whole Foods, Trader Joe's.`;
+
+  const loadingMessages = ["Comparing baskets…", "Calculating totals…", "Finding best store…", "Almost there…"];
+  let i = 0;
+  const msgInterval = setInterval(() => {
+    document.getElementById('loadingText').textContent = loadingMessages[i % loadingMessages.length];
+    i++;
+  }, 1200);
+
+  try {
+    const prompt = `You are a grocery price comparison assistant. The user has a shopping list: ${items.map(x => `"${x}"`).join(', ')}.
+
+${locationStr}
+
+Return a JSON object with this exact shape:
+{
+  "stores": [
+    {
+      "store": "Store Name",
+      "storeEmoji": "emoji",
+      "total": 24.57,
+      "items": [
+        { "name": "item name", "product": "brand/size", "price": 3.49 }
+      ]
+    }
+  ]
+}
+
+Rules:
+- Include 3-5 stores that carry most or all of the items
+- Sort stores by total price ascending (cheapest first)
+- Every store must have a price for every item on the list (estimate if needed)
+- Make prices realistic for 2025
+- Return ONLY valid JSON, no markdown, no explanation`;
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1500,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content[0].text.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(text);
+    clearInterval(msgInterval);
+    renderBasket(items, result.stores);
+  } catch(e) {
+    clearInterval(msgInterval);
+    // Fallback basket data
+    const fallback = {
+      stores: [
+        { store: "Aldi", storeEmoji: "🟥", total: items.length * 2.49, items: items.map(n => ({ name: n, product: "Store brand", price: 2.49 })) },
+        { store: "Walmart", storeEmoji: "🟦", total: items.length * 3.12, items: items.map(n => ({ name: n, product: "Great Value", price: 3.12 })) },
+        { store: "Kroger", storeEmoji: "🛒", total: items.length * 3.58, items: items.map(n => ({ name: n, product: "Kroger brand", price: 3.58 })) },
+      ]
+    };
+    renderBasket(items, fallback.stores);
+  }
+}
+
+function renderResults(query, deals) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('resultsScreen').classList.add('active');
+
+  const label = query.length > 28 ? query.slice(0,28)+'…' : query;
+  document.getElementById('queryLabel').textContent = `"${label}"`;
+
+  const maxSave = Math.max(...deals.map(d => d.regularPrice - d.salePrice));
+  const locNote = userLocation ? ` near ${userLocation.city}` : '';
+  const banner = document.querySelector('.savings-banner .savings-text');
+  banner.innerHTML = `<strong>Up to $${maxSave.toFixed(2)}</strong>potential savings found${locNote}`;
+
+  const list = document.getElementById('dealsList');
+  list.innerHTML = '';
+
+  deals.forEach((deal, idx) => {
+    const isCoupon = deal.dealType === 'coupon';
+    const isMember = deal.dealType === 'member';
+    const tagClass = isCoupon ? 'tag-coupon' : isMember ? 'tag-member' : 'tag-sale';
+    const tagLabel = isCoupon ? '🏷️ Coupon' : isMember ? '⭐ Member' : '🔥 Sale';
+    const isUnlocked = wallet.some(w => w.couponCode === deal.couponCode && deal.couponCode);
+
+    const card = document.createElement('div');
+    card.className = 'deal-card';
+    card.innerHTML = `
+      <div class="deal-card-top">
+        <div class="store-icon">${deal.storeEmoji}</div>
+        <div class="deal-info">
+          <div class="deal-store">${deal.store}</div>
+          <div class="deal-item">${deal.item}</div>
+        </div>
+        <div class="deal-prices">
+          <div class="price-now">$${deal.salePrice.toFixed(2)}</div>
+          <div class="price-was">$${deal.regularPrice.toFixed(2)}</div>
+          <div class="price-save">${deal.savings}</div>
+        </div>
+      </div>
+      <div class="deal-footer">
+        <span class="deal-tag ${tagClass}">${tagLabel}</span>
+        ${isCoupon
+          ? isUnlocked
+            ? `<div class="code-reveal" onclick="copyCode('${deal.couponCode}')">📋 ${deal.couponCode}</div>`
+            : `<button class="unlock-btn" onclick="openAdModal(${idx})">Watch Ad → Unlock</button>`
+          : `<span style="font-size:12px;color:var(--muted)">${deal.dealDescription}</span>`
+        }
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function renderBasket(items, stores) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('resultsScreen').classList.add('active');
+
+  const label = `${items.length} items`;
+  document.getElementById('queryLabel').textContent = `"${label}"`;
+
+  const winner = stores[0];
+  const runners = stores.slice(1);
+  const locNote = userLocation ? ` near ${userLocation.city}` : '';
+  const banner = document.querySelector('.savings-banner .savings-text');
+  const worstTotal = stores[stores.length - 1]?.total || winner.total;
+  const saved = worstTotal - winner.total;
+  banner.innerHTML = `<strong>$${winner.total.toFixed(2)} total</strong>best basket price found${locNote}`;
+
+  const list = document.getElementById('dealsList');
+  list.innerHTML = '';
+
+  // Winner card
+  const winnerEl = document.createElement('div');
+  winnerEl.className = 'winner-card';
+  winnerEl.innerHTML = `
+    <div class="winner-label">🏆 Best price for your full list</div>
+    <div class="winner-header">
+      <div class="winner-store">
+        <span class="winner-emoji">${winner.storeEmoji}</span>
+        <span class="winner-name">${winner.store}</span>
+      </div>
+      <div class="winner-total">
+        <div class="winner-price">$${winner.total.toFixed(2)}</div>
+        ${saved > 0.01 ? `<div class="winner-vs">saves $${saved.toFixed(2)} vs most expensive</div>` : ''}
+      </div>
+    </div>
+    <div class="winner-items">
+      ${winner.items.map(it => `
+        <div class="winner-item-row">
+          <span class="winner-item-name">${it.name} <span style="font-size:11px;opacity:0.6">(${it.product})</span></span>
+          <span class="winner-item-price">$${Number(it.price).toFixed(2)}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  list.appendChild(winnerEl);
+
+  // Runner-up section
+  if (runners.length > 0) {
+    const sectionLabel = document.createElement('div');
+    sectionLabel.className = 'section-label';
+    sectionLabel.style.marginBottom = '10px';
+    sectionLabel.textContent = 'Other stores';
+    list.appendChild(sectionLabel);
+
+    runners.forEach((store, idx) => {
+      const diff = store.total - winner.total;
+      const card = document.createElement('div');
+      card.className = 'runner-card';
+      const itemsId = `runner-items-${idx}`;
+      const chevronId = `runner-chevron-${idx}`;
+      card.innerHTML = `
+        <div class="runner-header" onclick="toggleRunner('${itemsId}','${chevronId}')">
+          <div class="runner-store">
+            <span class="runner-emoji">${store.storeEmoji}</span>
+            <span class="runner-name">${store.store}</span>
+          </div>
+          <div class="runner-right">
+            <span class="runner-total">$${store.total.toFixed(2)}</span>
+            <span class="runner-diff">+$${diff.toFixed(2)}</span>
+            <span class="runner-chevron" id="${chevronId}">▾</span>
+          </div>
+        </div>
+        <div class="runner-items" id="${itemsId}">
+          ${store.items.map(it => `
+            <div class="runner-item-row">
+              <span class="runner-item-name">${it.name}</span>
+              <span class="runner-item-price">$${Number(it.price).toFixed(2)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      list.appendChild(card);
+    });
+  }
+}
+
+function toggleRunner(itemsId, chevronId) {
+  const items = document.getElementById(itemsId);
+  const chevron = document.getElementById(chevronId);
+  items.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+function openAdModal(dealIdx) {
+  currentDeal = currentDeals[dealIdx];
+  document.getElementById('adModal').classList.add('open');
+  document.getElementById('claimBtn').disabled = true;
+  document.getElementById('adFill').style.width = '0%';
+
+  const ads = [
+    { emoji: '🍕', text: 'Papa John\'s — Order tonight!' },
+    { emoji: '💊', text: 'NutriShake — Feel amazing!' },
+    { emoji: '🚗', text: 'CarMax — Best prices on used cars' },
+    { emoji: '📱', text: 'Samsung — Galaxy S25 is here' },
+  ];
+  const ad = ads[Math.floor(Math.random() * ads.length)];
+  document.getElementById('adEmoji').textContent = ad.emoji;
+  document.getElementById('adText').textContent = ad.text;
+
+  let elapsed = 0;
+  const total = 5;
+  clearInterval(adInterval);
+  adInterval = setInterval(() => {
+    elapsed += 0.1;
+    const pct = Math.min((elapsed / total) * 100, 100);
+    document.getElementById('adFill').style.width = pct + '%';
+    const remaining = Math.max(0, Math.ceil(total - elapsed));
+    document.getElementById('adTimer').textContent = remaining > 0 ? `${remaining}s remaining` : 'Done!';
+    if (elapsed >= total) {
+      clearInterval(adInterval);
+      document.getElementById('claimBtn').disabled = false;
+    }
+  }, 100);
+}
+
+function closeModal() {
+  clearInterval(adInterval);
+  document.getElementById('adModal').classList.remove('open');
+  currentDeal = null;
+}
+
+function claimCoupon() {
+  if (!currentDeal) return;
+  wallet.push({ ...currentDeal });
+  updateWalletCount();
+  closeModal();
+  if (!isBasketMode) renderResults(searchQuery, currentDeals);
+  showToast('✅ Coupon saved to wallet!');
+}
+
+function updateWalletCount() {
+  document.getElementById('walletCount').textContent = wallet.length;
+}
+
+function renderWallet() {
+  const list = document.getElementById('walletList');
+  if (wallet.length === 0) {
+    list.innerHTML = `
+      <div class="wallet-empty">
+        <div class="wallet-empty-icon">🏷️</div>
+        <h3>No coupons yet</h3>
+        <p>Search for groceries and unlock coupons by watching a short ad. They'll appear here.</p>
+      </div>
+    `;
+    return;
+  }
+  list.innerHTML = wallet.map(w => `
+    <div class="wallet-card">
+      <div class="wallet-card-icon">${w.storeEmoji}</div>
+      <div class="wallet-card-info">
+        <div class="wallet-card-store">${w.store}</div>
+        <div class="wallet-card-desc">${w.item} · ${w.savings}</div>
+      </div>
+      <div class="wallet-card-code" onclick="copyCode('${w.couponCode}')">${w.couponCode}</div>
+    </div>
+  `).join('');
+}
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).catch(()=>{});
+  showToast(`📋 Copied "${code}" to clipboard!`);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+// Init location on load
+initLocation();
+</script>
+</body>
+</html>
