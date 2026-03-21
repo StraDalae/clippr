@@ -1090,11 +1090,7 @@ async function fetchDeals(query) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('loadingScreen').style.display = 'flex';
 
-  const locationStr = userLocation
-    ? `The user is located in ${userLocation.city}${userLocation.region ? ', ' + userLocation.region : ''}. Only include grocery store chains that actually operate in this region. Prioritize stores common in that area.`
-    : `No location available. Use a mix of national chains (Walmart, Kroger, Target, Aldi, Costco, Whole Foods, Trader Joe's).`;
-
-  const loadingMessages = ["Scanning stores…", "Hunting coupons…", "Comparing prices…", "Almost there…"];
+  const loadingMessages = ["Scanning Kroger…", "Checking prices…", "Finding deals…", "Almost there…"];
   let i = 0;
   const msgInterval = setInterval(() => {
     document.getElementById('loadingText').textContent = loadingMessages[i % loadingMessages.length];
@@ -1102,38 +1098,62 @@ async function fetchDeals(query) {
   }, 1200);
 
   try {
-    const prompt = `You are a grocery deal assistant. The user is searching for: "${query}"
+    // Step 1: Fetch real Kroger product data
+    const krogerRes = await fetch('/api/kroger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ term: query })
+    });
+    const krogerData = await krogerRes.json();
+    const krogerProducts = krogerData.products || [];
 
-${locationStr}
+    // Step 2: Ask Claude to interpret the real data + fill in other stores
+    const locationStr = userLocation
+      ? `The user is in ${userLocation.city}${userLocation.region ? ', ' + userLocation.region : ''}.`
+      : `No location provided.`;
 
-Return a JSON array of 4-6 realistic grocery store deals. Each deal object must have:
+    const krogerSummary = krogerProducts.slice(0, 5).map(p =>
+      `${p.name} ${p.size} — regular $${p.regularPrice ?? '?'}${p.onSale ? `, ON SALE $${p.salePrice}` : ''}`
+    ).join('\n');
+
+    const prompt = `You are a grocery deal assistant. ${locationStr}
+
+The user searched for: "${query}"
+
+Here are REAL prices from Kroger right now:
+${krogerSummary || 'No Kroger results found.'}
+
+Return a JSON array of 4-6 grocery store deals. Include the real Kroger results above as Kroger entries. Then add 2-3 realistic deals from other nearby stores (Walmart, Aldi, Target, etc.) for the same item.
+
+Each deal object must have:
 - store: store name
-- storeEmoji: one relevant emoji for the store
-- item: specific product name and size/quantity
-- regularPrice: regular price as a number (e.g. 4.99)
-- salePrice: discounted price as a number
-- dealType: one of "coupon", "sale", "member"
-- dealDescription: one sentence describing the deal
-- couponCode: if dealType is "coupon", a realistic 6-8 char code (e.g. "SAVE20K"), otherwise null
-- savings: dollar savings as a string (e.g. "$1.50 off")
+- storeEmoji: one relevant emoji
+- item: product name and size
+- regularPrice: number
+- salePrice: number (same as regularPrice if no sale)
+- dealType: "coupon", "sale", or "member"
+- dealDescription: one sentence
+- couponCode: realistic 6-8 char code if dealType is "coupon", otherwise null
+- savings: e.g. "$1.50 off" or "No current deal"
 
-Make prices realistic for 2025. Vary deal types. Return ONLY valid JSON array, no markdown.`;
+For Kroger entries, use the exact prices from the real data above. Return ONLY valid JSON array, no markdown.`;
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const chatRes = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }]
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1200,
+        messages: [{ role: 'user', content: prompt }]
       })
     });
 
-    const data = await res.json();
-    const text = data.content[0].text.replace(/```json|```/g, '').trim();
+    const chatData = await chatRes.json();
+    const text = chatData.content[0].text.replace(/```json|```/g, '').trim();
     currentDeals = JSON.parse(text);
     clearInterval(msgInterval);
     renderResults(query, currentDeals);
+
   } catch(e) {
     clearInterval(msgInterval);
     currentDeals = [
