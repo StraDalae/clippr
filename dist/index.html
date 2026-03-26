@@ -1453,10 +1453,13 @@ async function onLocationSuccess(pos) {
     const city = data.address.city || data.address.town || data.address.village || data.address.county || 'your area';
     const region = data.address.state_code || data.address.state || '';
     userLocation = { city, region, lat: latitude, lon: longitude };
-    setLocationLabel(`${city}${region ? ', ' + region : ''}`);
+    const locText = `${city}${region ? ', ' + region : ''}`;
+    setLocationLabel(locText);
     document.getElementById('locationPill').classList.remove('detecting');
     document.getElementById('locationDot').classList.remove('inactive');
     document.getElementById('locationBanner').style.display = 'none';
+    const sidebarLoc = document.getElementById('sidebarLocation');
+    if (sidebarLoc) sidebarLoc.textContent = `📍 ${locText}`;
   } catch(e) {
     userLocation = { city: 'your area', region: '', lat: latitude, lon: longitude };
     setLocationLabel('Near you');
